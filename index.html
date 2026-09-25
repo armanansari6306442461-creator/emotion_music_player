@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Emotion Based Music Player</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            background:
+                linear-gradient(rgba(20, 30, 48, 0.72), rgba(36, 59, 85, 0.78)),
+                url("./static/music-background.webp") center / cover fixed;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 30px 15px;
+        }
+
+        .player {
+            width: 100%;
+            max-width: 550px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 25px;
+            padding: 30px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 30px;
+        }
+
+        p {
+            color: #cfd8e3;
+        }
+
+        .emotion-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin: 20px 0;
+        }
+
+        .emotion-buttons button {
+            background: rgba(255, 255, 255, 0.12);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 12px 18px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .emotion-buttons button:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+        }
+
+        #songTitle {
+            margin: 25px 0 10px;
+            font-size: 22px;
+        }
+
+        audio {
+            width: 100%;
+            margin: 15px 0;
+        }
+
+        video {
+            width: 100%;
+            max-height: 300px;
+            margin: 15px 0;
+            border-radius: 12px;
+            background: #000;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 15px 0 25px;
+        }
+
+        .controls button {
+            width: 55px;
+            height: 55px;
+            border: none;
+            border-radius: 50%;
+            background: white;
+            color: #182333;
+            font-size: 20px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .controls button:hover {
+            transform: scale(1.1);
+        }
+
+        .song-list {
+            margin-top: 20px;
+        }
+
+        .song-list h3 {
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            padding-bottom: 10px;
+        }
+
+        .song {
+            padding: 14px;
+            margin: 8px 0;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .song:hover {
+            background: rgba(255, 255, 255, 0.18);
+        }
+
+        .song.active {
+            background: rgba(255, 255, 255, 0.25);
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="player">
+
+    <h1>🎵 Arman engg.</h1>
+
+    <p>Select your mood:</p>
+
+    <div class="emotion-buttons">
+        <button onclick="playEmotion('happy')">😊 Happy</button>
+        <button onclick="playEmotion('sad')">😢 Sad</button>
+        <button onclick="playEmotion('angry')">😡 Angry</button>
+        <button onclick="playEmotion('calm')">😌 Calm</button>
+    </div>
+
+    <h2 id="songTitle">Select an emotion</h2>
+    <p id="playerStatus" role="status" aria-live="polite"></p>
+
+    <audio id="audioPlayer" controls>
+        Your browser does not support audio.
+    </audio>
+
+    <video id="videoPlayer" controls hidden>
+        Your browser does not support video.
+    </video>
+
+    <div class="controls">
+        <button onclick="previousSong()">⏮️</button>
+        <button onclick="resumeSong()" aria-label="Resume song">▶️</button>
+        <button onclick="stopSong()" aria-label="Stop song">⏸️</button>
+        <button onclick="nextSong()">⏭️</button>
+    </div>
+
+    <div class="song-list">
+        <h3>🎶 Song List</h3>
+        <div id="songList"></div>
+    </div>
+
+</div>
+
+<script>
+const songs = {
+    happy: [
+        { name: "Happy Song", file: "./static/songs/happy/happy1.mp3" },
+        { name: "Happy Video", file: "./static/songs/happy/happy-video.mp4" }
+    ],
+    sad: [
+        { name: "Girlfriend", file: "./static/songs/sad/sad1.mp3" },
+        
+    ],
+    angry: [
+        { name: "Angry Video", file: "./static/songs/angry/angry-video.mp4" }
+    ],
+    calm: [
+        { name: "Barsoon Kay Intizar Ka", file: "./static/songs/calm/calm1.mp3" },
+        
+    ]
+};
+
+let currentEmotion = "";
+let currentSongIndex = 0;
+
+const audioPlayer = document.getElementById("audioPlayer");
+const videoPlayer = document.getElementById("videoPlayer");
+const songTitle = document.getElementById("songTitle");
+const songList = document.getElementById("songList");
+const playerStatus = document.getElementById("playerStatus");
+
+function getActivePlayer() {
+    const currentSong = songs[currentEmotion][currentSongIndex];
+    return currentSong.file.endsWith(".mp4") ? videoPlayer : audioPlayer;
+}
+
+function playEmotion(emotion) {
+    currentEmotion = emotion;
+    currentSongIndex = 0;
+    showSongList();
+    loadSong();
+}
+
+function loadSong() {
+
+    const currentSong = songs[currentEmotion][currentSongIndex];
+    const isVideo = currentSong.file.endsWith(".mp4");
+    const mediaPlayer = isVideo ? videoPlayer : audioPlayer;
+
+    audioPlayer.pause();
+    videoPlayer.pause();
+    audioPlayer.hidden = isVideo;
+    videoPlayer.hidden = !isVideo;
+
+    mediaPlayer.src = currentSong.file;
+    playerStatus.innerText = "Loading song…";
+
+    songTitle.innerText = currentSong.name;
+
+    showSongList();
+
+    mediaPlayer.load();
+
+    mediaPlayer.play().then(function() {
+        playerStatus.innerText = "";
+    }).catch(function(error) {
+        if (error.name === "NotAllowedError") {
+            playerStatus.innerText = "Press Play to start playback.";
+        } else {
+            playerStatus.innerText = "Song file nahi mila ya play nahi ho saka. MP3 ko static/songs/" + currentEmotion + "/ mein rakhein.";
+        }
+    });
+}
+
+function handleMediaError() {
+    if (currentEmotion) {
+        playerStatus.innerText = "Media file nahi mila. File ko static/songs/" + currentEmotion + "/ mein rakhein.";
+    }
+}
+
+audioPlayer.addEventListener("error", handleMediaError);
+videoPlayer.addEventListener("error", handleMediaError);
+
+function resumeSong() {
+    if (!currentEmotion) {
+        alert("Please select an emotion first.");
+        return;
+    }
+
+    const mediaPlayer = getActivePlayer();
+    mediaPlayer.play();
+}
+
+function stopSong() {
+    if (!currentEmotion) {
+        alert("Please select an emotion first.");
+        return;
+    }
+
+    getActivePlayer().pause();
+}
+
+function nextSong() {
+    if (!currentEmotion) {
+        alert("Please select an emotion first.");
+        return;
+    }
+
+    currentSongIndex++;
+    if (currentSongIndex >= songs[currentEmotion].length) {
+        currentSongIndex = 0;
+    }
+    loadSong();
+}
+
+function previousSong() {
+    if (!currentEmotion) {
+        alert("Please select an emotion first.");
+        return;
+    }
+
+    currentSongIndex--;
+    if (currentSongIndex < 0) {
+        currentSongIndex = songs[currentEmotion].length - 1;
+    }
+    loadSong();
+}
+
+function showSongList() {
+    songList.innerHTML = "";
+
+    if (!currentEmotion) {
+        return;
+    }
+
+    songs[currentEmotion].forEach((song, index) => {
+        const songElement = document.createElement("div");
+        songElement.className = "song";
+
+        if (index === currentSongIndex) {
+            songElement.classList.add("active");
+        }
+
+        songElement.innerText = song.name;
+        songElement.onclick = function() {
+            currentSongIndex = index;
+            loadSong();
+        };
+
+        songList.appendChild(songElement);
+    });
+}
+
+audioPlayer.addEventListener("ended", function() {
+    nextSong();
+});
+
+videoPlayer.addEventListener("ended", function() {
+    nextSong();
+});
+</script>
+
+</body>
+</html>
